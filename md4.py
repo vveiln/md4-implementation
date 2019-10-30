@@ -24,7 +24,7 @@ def r1(state, c, s):
 def r2(state, c, s):
     return lrot((state[0] + G(state[1], state[2], state[3]) + c + 0x5a827999) & WORD_MASK, s)
 
-def r2(state, c, s):
+def r3(state, c, s):
     return lrot((state[0] + H(state[1], state[2], state[3]) + c + 0x6ed9eba1) & WORD_MASK, s)
 
 def lrot(x, s):
@@ -38,10 +38,10 @@ def chunk(s, size):
 
 class MD4(object):
     def __init__(self):
-        self.A = 0x01234567
-        self.B = 0x89abcdef
-        self.C = 0xfedcba98
-        self.D = 0x76543210
+        self.A = 0x67452301
+        self.B = 0xefcdab89
+        self.C = 0x98badcfe
+        self.D = 0x10325476
         self.chunks = None
         self.message = b''
 
@@ -58,18 +58,17 @@ class MD4(object):
     def _process_block(self, idx):
         X = list(map(lambda x: struct.unpack('>I', x)[0], chunk(self.chunks[idx], 4)))
         state = [self.A, self.B, self.C, self.D]
-
         for i, j in zip(range(16), [3, 7, 11, 19] * 4):        
             state[0] = r1(state, X[i], j)
             state = list_rrot(state)
         
-        for i, j in zip([0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 4, 3, 7, 11, 15], [3, 5, 9, 13] * 4):
+        for i, j in zip([0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15], [3, 5, 9, 13] * 4):
             state[0] = r2(state, X[i], j)
             state = list_rrot(state)
 
-        for i, j in zip():
-            state[0] = r2(state, X[i], j)
-            self = list_rrot(state)
+        for i, j in zip([0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15], [3, 9, 11, 15] * 4):
+            state[0] = r3(state, X[i], j)
+            state = list_rrot(state)
 
         self.A = self.A + state[0]
         self.B = self.B + state[1]
