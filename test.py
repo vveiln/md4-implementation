@@ -108,3 +108,15 @@ class TestH(object):
         z = 0b1
         assert H(x, y, z) == 0b1
 
+class TestLrot(object):
+    def test(self):
+        x = 0b10
+        assert lrot(x, 1) == 0b100
+
+    def test_cycling(self):
+        x = 0b1
+        assert lrot(x, 32) == 0b1
+
+    def test_max(self):
+        x = 0b10101010101010101111111111111111
+        assert lrot(x, 16) == 0b11111111111111111010101010101010
