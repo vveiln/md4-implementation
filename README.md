@@ -1,3 +1,4 @@
+# Pure Python MD4 Message Digest Algorithm Implementation
 This repository contains a pure python3 implementation of [MD4 Message Digest Algorithm](https://tools.ietf.org/html/rfc1320). Use it if you need to look at the code, otherwise try [some other good ready-made solutions](https://kite.com/python/docs/Crypto.Hash.MD4)
 
 ## Usage
