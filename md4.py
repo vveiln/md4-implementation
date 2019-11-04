@@ -18,73 +18,68 @@ def G(x, y, z):
 def H(x, y, z):
     return (x ^ y ^ z) & WORD_MASK
 
-def r1(state, c, s):
-    return lrot((state[0] + F(state[1], state[2], state[3]) + c) & WORD_MASK, s)
-
-def r2(state, c, s):
-    return lrot((state[0] + G(state[1], state[2], state[3]) + c + 0x5a827999) & WORD_MASK, s)
-
-def r3(state, c, s):
-    return lrot((state[0] + H(state[1], state[2], state[3]) + c + 0x6ed9eba1) & WORD_MASK, s)
-
-def lrot(x, s):
+def left_circular_shift(x, s):
     return (((x << s) | (x >> 32 - s)) & WORD_MASK)
-
-def list_rrot(l, s=1):
-    return l[s:] + l[:s]
 
 def chunk(s, size):
     return [s[i : i + size] for i in range(0, len(s), size)]
 
 class MD4(object):
+    NUMBER_OF_ROUNDS = 3
+    ROUND_CONSTANT = {0 : 0x00000000, 1 : 0x5a827999, 2 : 0x6ed9eba1}
+    ROUND_FUNCTION = {0 : F, 1 : G, 2 : H}
+    ROUND_PARAMS = {0 : ((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15), (3, 7, 11, 19) * 4),
+                    1 : ((0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15), (3, 5, 9, 13) * 4),
+                    2 : ((0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15), (3, 9, 11, 15) * 4)}
+    
     def __init__(self):
-        self.A = 0x67452301
-        self.B = 0xefcdab89
-        self.C = 0x98badcfe
-        self.D = 0x10325476
-        self.chunks = None
+        self.state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
         self.message = b''
 
-    def get_padding(self, message_length):
-        count = (64 - 1 - 8 - message_length) % 64
-        return b'\x80' + count * b'\x00' + struct.pack('>Q', 8 * message_length)
+    def _get_padding(self):
+        mlen = len(self.message)
+        count = (64 - 1 - 8 - mlen) % 64
+        return b'\x80' + count * b'\x00' + struct.pack(b'<Q', 8 * mlen)
 
-    def pad(self):
-        self.message += self.get_padding(len(self.message) % 64)
+    def _pad(self):
+        self.message += self._get_padding()
 
     def update(self, message):
         self.message += bytearray(message, 'utf-8')
 
-    def _process_block(self, idx):
-        X = list(map(lambda x: struct.unpack('>I', x)[0], chunk(self.chunks[idx], 4)))
-        state = [self.A, self.B, self.C, self.D]
-        for i, j in zip(range(16), [3, 7, 11, 19] * 4):        
-            state[0] = r1(state, X[i], j)
-            state = list_rrot(state)
+    def _round(self, round_number, value, s):
+        round_function = self.ROUND_FUNCTION[round_number]
+        round_constant = self.ROUND_CONSTANT[round_number]
+        self.state[0] = left_circular_shift((self.state[0] 
+                                             + round_function(*self.state[1:]) 
+                                             + value 
+                                             + round_constant) & WORD_MASK, s)
+        self._right_circular_shift()
+    
+    def _right_circular_shift(self, s=1):
+        self.state = self.state[-s:] + self.state[:-s]
+    
+    def _process_block(self, block):
+        words = [struct.unpack('<I', w)[0] for w in chunk(block, 4)]
+        state = self.state.copy()
         
-        for i, j in zip([0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15], [3, 5, 9, 13] * 4):
-            state[0] = r2(state, X[i], j)
-            state = list_rrot(state)
-
-        for i, j in zip([0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15], [3, 9, 11, 15] * 4):
-            state[0] = r3(state, X[i], j)
-            state = list_rrot(state)
-
-        self.A = self.A + state[0]
-        self.B = self.B + state[1]
-        self.C = self.C + state[2]
-        self.D = self.D + state[3]
-
+        for r in range(self.NUMBER_OF_ROUNDS):
+            for idx, s in zip(*self.ROUND_PARAMS[r]):
+                self._round(r, words[idx], s)
+            
+        self.state = [(self.state[i] + state[i]) & WORD_MASK for i in range(len(self.state))]
 
     def digest(self):
-        self.pad()
-        self.chunks = chunk(self.message, 64)
-        for c in range(len(self.chunks)):
-            self._process_block(c)
-        return hex(self.D)[2:] + hex(self.C)[2:] +hex(self.B)[2:] + hex(self.A)[2:]
-        
+        self._pad()
+        blocks = chunk(self.message, 64)
+        for b in blocks:
+            self._process_block(b)
+        return struct.pack('<IIII', *self.state)
+    
+    def hexdigest(self):
+        return self.digest().hex()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     md4 = MD4()
-    md4.update('aaaa')
-    print(md4.digest())
+    md4.update('a' * 65)
+    print(md4.hexdigest())
