@@ -1,27 +1,7 @@
 import struct
 import pytest
-from md4 import *
 from Crypto.Hash import MD4 as ExpectedMD4
-from os import urandom
-
-class TestPadding(object):
-    def test_boundary_padding(self):
-        message_len = 56
-        md4 = MD4()
-        md4.update('a' * message_len)
-        assert md4._get_padding() == b'\x80' + 63 * b'\x00' + struct.pack('<Q', message_len * 8)
-
-    def test_min_padding(self):
-        message_len = 0
-        md4 = MD4()
-        md4.update('a' * message_len)
-        assert md4._get_padding() == b'\x80' + 55 * b'\x00' + struct.pack('<Q', message_len * 8)
-
-    def test_max_padding(self):
-        message_len = 63
-        md4 = MD4()
-        md4.update('a' * message_len)
-        assert md4._get_padding() == b'\x80' + 56 * b'\x00' + struct.pack('<Q', message_len * 8)
+from md4 import *
 
 class TestMul(object):
     def test(self):
@@ -112,7 +92,7 @@ class TestH(object):
         z = 0b1
         assert H(x, y, z) == 0b1
 
-class TestLrot(object):
+class TestCircularShift(object):
     def test(self):
         x = 0b10
         assert left_circular_shift(x, 1) == 0b100
@@ -126,48 +106,76 @@ class TestLrot(object):
         assert left_circular_shift(x, 16) == 0b11111111111111111010101010101010
 
 class TestMD4(object):
+    def test_boundary_padding(self):
+        message_len = 56
+        md4 = MD4()
+        md4.update('a' * message_len)
+        assert md4._get_padding() == b'\x80' + 63 * b'\x00' + struct.pack('<Q', message_len * 8)
+
+    def test_min_padding(self):
+        message_len = 0
+        md4 = MD4()
+        md4.update('a' * message_len)
+        assert md4._get_padding() == b'\x80' + 55 * b'\x00' + struct.pack('<Q', message_len * 8)
+
+    def test_max_padding(self):
+        message_len = 63
+        md4 = MD4()
+        md4.update('a' * message_len)
+        assert md4._get_padding() == b'\x80' + 56 * b'\x00' + struct.pack('<Q', message_len * 8)
+
+    def test_update(self):
+        md4 = MD4()
+        md4.update('aaaa')
+        assert md4.message == b'aaaa'
+
+    def test_update_twice(self):
+        md4 = MD4()
+        md4.update('aaaa')
+        md4.update('bbbbbb')
+        assert md4.message == b'aaaabbbbbb'
+
     def test(self):
-        m = 'abcd'
+        message = 'abcd'
         expected = ExpectedMD4.new()
-        expected.update(m)
+        expected.update(message)
 
         actual = MD4()
-        actual.update(m)
+        actual.update(message)
         assert actual.hexdigest() == expected.hexdigest()
 
     def test_two_blocks(self):
-        m = 'a' * 65
+        message = 'a' * 65
         expected = ExpectedMD4.new()
-        expected.update(m)
+        expected.update(message)
 
         actual = MD4()
-        actual.update(m)
+        actual.update(message)
         assert actual.hexdigest() == expected.hexdigest()
 
     def test_max_block(self):
-        m = 'a' * 64
+        message = 'a' * 64
         expected = ExpectedMD4.new()
-        expected.update(m)
+        expected.update(message)
 
         actual = MD4()
-        actual.update(m)
+        actual.update(message)
         assert actual.hexdigest() == expected.hexdigest()
 
     def test_many_blocks(self):
-        m = 'a' * (64 * 53)
+        message = 'a' * (64 * 53)
         expected = ExpectedMD4.new()
-        expected.update(m)
+        expected.update(message)
 
         actual = MD4()
-        actual.update(m)
+        actual.update(message)
         assert actual.hexdigest() == expected.hexdigest()
 
     def test_unicode(self):
-        m = 'юникод тест'
+        message = 'юникод тест'
         expected = ExpectedMD4.new()
-        expected.update(m)
+        expected.update(message)
 
         actual = MD4()
-        actual.update(m)
+        actual.update(message)
         assert actual.hexdigest() == expected.hexdigest()
-

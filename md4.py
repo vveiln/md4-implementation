@@ -5,7 +5,7 @@ BITS_IN_BYTE = 8
 BITS_IN_WORD = BITS_IN_BYTE * BYTES_IN_WORD
 
 def left_circular_shift(x, s):
-    return (((x << s) | (x >> BITS_IN_WORD - s)) & WORD_MASK)
+    return ((x << s) | (x >> BITS_IN_WORD - s)) & WORD_MASK
 
 def chunk(s, size):
     return [s[i : i + size] for i in range(0, len(s), size)]
@@ -33,9 +33,12 @@ class MD4(object):
     BLOCK_SIZE = 64
     ROUND_CONSTANT = {0 : 0x00000000, 1 : 0x5a827999, 2 : 0x6ed9eba1}
     ROUND_FUNCTION = {0 : F, 1 : G, 2 : H}
-    ROUND_PARAMS = {0 : ((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15), (3, 7, 11, 19) * 4),
-                    1 : ((0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15), (3, 5, 9, 13) * 4),
-                    2 : ((0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15), (3, 9, 11, 15) * 4)}
+    ROUND_PARAMS = {0 : ((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+                         (3, 7, 11, 19) * 4),
+                    1 : ((0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15),
+                         (3, 5, 9, 13) * 4),
+                    2 : ((0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15),
+                         (3, 9, 11, 15) * 4)}
 
     def __init__(self):
         self.state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
